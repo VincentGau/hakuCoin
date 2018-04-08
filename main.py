@@ -4,14 +4,18 @@ import json
 import time
 import hashlib
 
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
 
 class Block:
-    def __init__(self, index, timestamp, transactions, previous_hash):
+    def __init__(self, index, timestamp, transactions, proof, previous_hash):
         self.index = index
         self.timestamp = timestamp
         self.transactions = transactions
         self.previous_hash = previous_hash
-        self.hash = self.block_hash()
+        self.proof = proof
 
     def block_hash(self):
         """
@@ -29,6 +33,39 @@ class Blockchain:
         self.blocks = []
         self.current_transactions = []
 
+        # add genesis block when init
+        genesis_block = Block(0, time.time(), None, 0, '0')
+        self.add_block(genesis_block)
+
+    def add_block(self, block):
+        """
+        Add a new block to the chain, meanwhile reset the current transaction list.
+
+
+        :param block:
+        """
+        self.blocks.append(block)
+        self.current_transactions = []
+
+    def new_transaction(self, sender, recipient, amount):
+        """
+        Create a new transaction, which will be stored in the next mined block.
+
+        :param sender:
+        :param recipient:
+        :param amount:
+
+        :return: the index of the block which the transaction will be.
+        """
+        transaction = {
+            'sender': sender,
+            'recipient': recipient,
+            'amount': amount,
+        }
+
+        self.current_transactions.append(transaction)
+        return blockchain.blocks[-1].index + 1
+
 
 def proof_of_work(blockchain):
     """
@@ -38,9 +75,9 @@ def proof_of_work(blockchain):
     :param blockchain:
     :return: <int> new proof
     """
-    previous_block = blockchain[-1]
+    previous_block = blockchain.blocks[-1]
     previous_hash = previous_block.block_hash()
-    previous_proof = previous_block['proof']
+    previous_proof = previous_block.proof
 
     proof = 0
 
@@ -64,7 +101,7 @@ def validate_proof(proof, previous_proof, previous_hash):
     return guess_hash[:4] == "0000"
 
 
-def test_pow_time():
+def pow_time_test():
     start = time.time()
     proof = 0
     while not validate_proof(proof, 0, 0):
@@ -75,8 +112,47 @@ def test_pow_time():
     return proof
 
 
-blockchain = []
-genesis_block = Block(0, time.time(), None, '0')
-blockchain.append(genesis_block)
+blockchain = Blockchain()
 
-print(test_pow_time())
+
+@app.route('/blocks', methods=['GET'])
+def blocks():
+    blocks_list = []
+    for block in blockchain.blocks:
+        blocks_list.append(block.__dict__)
+    response = {
+        'blocks': blocks_list,
+        'length': len(blockchain.blocks),
+    }
+    return jsonify(response), 200
+
+
+@app.route('/transact', methods=['POST'])
+def transact():
+    print(request.get_data())
+    print(request.get_json())
+    values = request.get_json()
+    print(values)
+    required = ['sender', 'recipient', 'amount']
+    if not all(k in values for k in required):
+        return 'Bad request.', 400
+
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    return jsonify(f'The transaction will be stored in block{index}'), 200
+
+
+@app.route('/mine', methods=['GET'])
+def mine():
+    previous_block = blockchain.blocks[-1]
+    previous_hash = previous_block.block_hash()
+    index = len(blockchain.blocks)
+    timestamp = time.time()
+    transactions = blockchain.current_transactions
+    proof = proof_of_work(blockchain)
+    block = Block(index, timestamp, transactions, proof, previous_hash)
+    blockchain.add_block(block)
+    return jsonify(block.__dict__), 200
+
+
+if __name__ == '__main__':
+    app.run(host='localhost', port=5000)
