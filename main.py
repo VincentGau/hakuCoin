@@ -3,8 +3,10 @@
 import json
 import time
 import hashlib
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
+import requests
 
 app = Flask(__name__)
 
@@ -33,6 +35,9 @@ class Blockchain:
         self.blocks = []
         self.current_transactions = []
 
+        # nodes in the peer to peer network
+        self.nodes = set()
+
         # add genesis block when init
         genesis_block = Block(0, time.time(), None, 0, '0')
         self.add_block(genesis_block)
@@ -58,13 +63,84 @@ class Blockchain:
         :return: the index of the block which the transaction will be.
         """
         transaction = {
-            'sender': sender,
+            'sender'   : sender,
             'recipient': recipient,
-            'amount': amount,
+            'amount'   : amount,
         }
 
         self.current_transactions.append(transaction)
         return blockchain.blocks[-1].index + 1
+
+    def register_node(self, address):
+        parsed_url = urlparse(address)
+        self.nodes.add(parsed_url.netloc)
+
+
+def is_valid(chain):
+    """
+    Check if a given blockchain(the chain itself) is valid or not.
+
+    :param chain: Response from url http://{}/full_chain
+    :return:
+    """
+    if not chain:
+        return False
+
+    blocks = chain['blocks']
+    length = chain['length']
+
+    # if len(blockchain.blocks) != length:
+    #     return False
+
+    if len(blocks) != length:
+        return False
+
+    last_block = Block(blocks[0]['index'], blocks[0]['timestamp'], blocks[0]['transactions'], blocks[0]['proof'],
+                       blocks[0]['previous_hash'])
+    index = 1
+
+    while index < length:
+        block = Block(blocks[index]['index'], blocks[index]['timestamp'], blocks[index]['transactions'],
+                      blocks[index]['proof'], blocks[index]['previous_hash'])
+        if block.previous_hash != last_block.block_hash():
+            return False
+        if not validate_proof(block.proof, last_block.proof, block.previous_hash):
+            return False
+        index += 1
+        last_block = block
+
+    return True
+
+
+def consensus():
+    """
+    Replace local chain with the longest chain in all nodes.
+
+    :return: True if local blockchain is updated
+    """
+    max_length = len(blockchain.blocks)
+    update_blocks = None
+
+    for node in blockchain.nodes:
+        r = requests.get(f'http://{node}/full_chain')
+        if r.status_code == 200:
+            length = r.json()['length']
+            blocks = r.json()['blocks']
+
+            if length > max_length and is_valid(r.json()):
+                max_length = length
+                update_blocks = blocks
+
+    if update_blocks:
+        new_chain = []
+        for block in update_blocks:
+            new_chain.append(
+                Block(block['index'], block['timestamp'], block['transactions'], block['proof'],
+                      block['previous_hash'], ))
+        blockchain.blocks = new_chain
+        return True
+
+    return False
 
 
 def proof_of_work(blockchain):
@@ -115,8 +191,13 @@ def pow_time_test():
 blockchain = Blockchain()
 
 
-@app.route('/blocks', methods=['GET'])
-def blocks():
+@app.route('/full_chain', methods=['GET'])
+def full_chain():
+    """
+    Get all blocks in the chain.
+
+    :return:
+    """
     blocks_list = []
     for block in blockchain.blocks:
         blocks_list.append(block.__dict__)
@@ -143,6 +224,11 @@ def transact():
 
 @app.route('/mine', methods=['GET'])
 def mine():
+    """
+    Create a new block and add it to the chain.
+
+    :return:
+    """
     previous_block = blockchain.blocks[-1]
     previous_hash = previous_block.block_hash()
     index = len(blockchain.blocks)
@@ -152,6 +238,54 @@ def mine():
     block = Block(index, timestamp, transactions, proof, previous_hash)
     blockchain.add_block(block)
     return jsonify(block.__dict__), 200
+
+#
+# @app.route('/isValid', methods=['GET'])
+# def isValid():
+#     r = requests.get('http://localhost:5001/full_chain')
+#     print(r.json())
+#     result = is_valid(r.json())
+#     return jsonify(f'{result}'), 200
+
+
+@app.route('/register_node', methods=['POST'])
+def register_node():
+    """
+    Add nodes to the network
+
+    :return:
+    """
+    values = request.get_json()
+    nodes = values['nodes']
+
+    blockchain.register_node(nodes)
+
+    response = {
+        'message'  : "nodes have been added.",
+        'all nodes': list(blockchain.nodes),
+    }
+    return jsonify(response), 201
+
+
+@app.route('/resolve', methods=['GET'])
+def resolve():
+    result = consensus()
+    blocks_list = []
+    for block in blockchain.blocks:
+        blocks_list.append(block.__dict__)
+    if result:
+
+        response = {
+            'message'  : "Chain is updated",
+            'new chain': blocks_list,
+        }
+    else:
+        response = {
+            'message': "Local chain is active.",
+            'chain'  : blocks_list,
+        }
+
+    return jsonify(response), 200
 
 
 if __name__ == '__main__':
