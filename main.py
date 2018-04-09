@@ -3,6 +3,7 @@
 import json
 import time
 import hashlib
+from argparse import ArgumentParser
 from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
@@ -289,4 +290,10 @@ def resolve():
 
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5000)
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--port', default=5000, type=int,  help='port to listen on.')
+
+    args = parser.parse_args()
+    port = args.port
+
+    app.run(host='localhost', port=port)
