@@ -19,7 +19,8 @@ Now we can:
 - Post data to `http://{node}register_nodes` to join the network, the request should be sent to all _other_ nodes in the network.
 
 ### Register nodes to the network
-eg. post json below to `http://localhost:5000/register_nodes`.
+Nodes info are configured in `local_config.py` by default. We can also add nodes to the network manually.
+eg. If the nodes set() is empty, post json below to `http://localhost:5000/register_nodes`.
 ```
 {
 	"nodes": ["http://localhost:5001", "http://localhost:5002"]

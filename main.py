@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 from flask import Flask, jsonify, request
 import requests
 
+import local_config
+
 app = Flask(__name__)
 
 
@@ -37,7 +39,7 @@ class Blockchain:
         self.current_transactions = []
 
         # nodes in the peer to peer network
-        self.nodes = set()
+        self.nodes = local_config.NODES
 
         # add genesis block when init
         genesis_block = Block(0, time.time(), None, 0, '0')
@@ -179,6 +181,11 @@ def validate_proof(proof, previous_proof, previous_hash):
 
 
 def pow_time_test():
+    """
+    Time elapsed of different difficulty.
+
+    :return:
+    """
     start = time.time()
     proof = 0
     while not validate_proof(proof, 0, 0):
@@ -209,12 +216,28 @@ def full_chain():
     return jsonify(response), 200
 
 
+@app.route('/nodes', methods=['GET'])
+def nodes():
+    """
+    Show all nodes.
+
+    :return:
+    """
+    response = {
+        'nodes': list(blockchain.nodes),
+        'length': len(blockchain.nodes),
+    }
+    return jsonify(response), 200
+
+
 @app.route('/transact', methods=['POST'])
 def transact():
-    print(request.get_data())
-    print(request.get_json())
+    """
+    Claim a new transaction
+
+    :return:
+    """
     values = request.get_json()
-    print(values)
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Bad request.', 400
@@ -239,14 +262,6 @@ def mine():
     block = Block(index, timestamp, transactions, proof, previous_hash)
     blockchain.add_block(block)
     return jsonify(block.__dict__), 200
-
-#
-# @app.route('/isValid', methods=['GET'])
-# def isValid():
-#     r = requests.get('http://localhost:5001/full_chain')
-#     print(r.json())
-#     result = is_valid(r.json())
-#     return jsonify(f'{result}'), 200
 
 
 @app.route('/register_nodes', methods=['POST'])
@@ -274,6 +289,11 @@ def register_nodes():
 
 @app.route('/resolve', methods=['GET'])
 def resolve():
+    """
+    Resolve conflict. Update current blockchain with the longest one in the network.
+
+    :return:
+    """
     result = consensus()
     blocks_list = []
     for block in blockchain.blocks:
@@ -295,7 +315,7 @@ def resolve():
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default=5000, type=int,  help='port to listen on.')
+    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on.')
 
     args = parser.parse_args()
     port = args.port
