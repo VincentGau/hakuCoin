@@ -249,8 +249,8 @@ def mine():
 #     return jsonify(f'{result}'), 200
 
 
-@app.route('/register_node', methods=['POST'])
-def register_node():
+@app.route('/register_nodes', methods=['POST'])
+def register_nodes():
     """
     Add nodes to the network
 
@@ -259,7 +259,11 @@ def register_node():
     values = request.get_json()
     nodes = values['nodes']
 
-    blockchain.register_node(nodes)
+    if nodes is None:
+        return "Error: Please supply a valid list of nodes", 400
+
+    for node in nodes:
+        blockchain.register_node(node)
 
     response = {
         'message'  : "nodes have been added.",
