@@ -215,9 +215,10 @@ def generate_keys():
     public_key = base64.b64encode(bytes.fromhex(public_key))
     address = base64.b64encode(bytes.fromhex(address))
 
-    return private_key, public_key, address
+    return private_key.decode(), public_key.decode(), address.decode()
 
 
+# init
 blockchain = Blockchain()
 priv, pub, addr = generate_keys()
 
@@ -352,9 +353,9 @@ def wallet():
     private_key, public_key, address = generate_keys()
 
     response = {
-        'address'    : address.decode(),
-        'private_key': private_key.decode(),
-        'public_key' : public_key.decode(),
+        'address'    : address,
+        'private_key': private_key,
+        'public_key' : public_key,
     }
     return jsonify(response), 200
 
