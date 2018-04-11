@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import base64
 import json
 import time
 import hashlib
 from argparse import ArgumentParser
 from urllib.parse import urlparse
 
+import ecdsa
 from flask import Flask, jsonify, request
 import requests
 
@@ -196,7 +198,28 @@ def pow_time_test():
     return proof
 
 
+def generate_keys():
+    """
+    Generate private key, public key, and address.
+
+    :return:
+    """
+    sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+    vk = sk.get_verifying_key()
+
+    private_key = sk.to_string().hex()
+    public_key = vk.to_string().hex()
+    address = hashlib.sha256(private_key.encode()).hexdigest()
+
+    private_key = base64.b64encode(bytes.fromhex(private_key))
+    public_key = base64.b64encode(bytes.fromhex(public_key))
+    address = base64.b64encode(bytes.fromhex(address))
+
+    return private_key, public_key, address
+
+
 blockchain = Blockchain()
+priv, pub, addr = generate_keys()
 
 
 @app.route('/full_chain', methods=['GET'])
@@ -224,7 +247,7 @@ def nodes():
     :return:
     """
     response = {
-        'nodes': list(blockchain.nodes),
+        'nodes' : list(blockchain.nodes),
         'length': len(blockchain.nodes),
     }
     return jsonify(response), 200
@@ -253,6 +276,10 @@ def mine():
 
     :return:
     """
+
+    # reward for finding the proof, in this case sender is 0.
+    blockchain.new_transaction(sender=0, recipient=addr, amount=1)
+
     previous_block = blockchain.blocks[-1]
     previous_hash = previous_block.block_hash()
     index = len(blockchain.blocks)
@@ -261,6 +288,7 @@ def mine():
     proof = proof_of_work(blockchain)
     block = Block(index, timestamp, transactions, proof, previous_hash)
     blockchain.add_block(block)
+
     return jsonify(block.__dict__), 200
 
 
@@ -310,6 +338,24 @@ def resolve():
             'chain'  : blocks_list,
         }
 
+    return jsonify(response), 200
+
+
+@app.route('/wallet', methods=['GET'])
+def wallet():
+    """
+    Apply for a new wallet.
+
+    :return:
+    """
+
+    private_key, public_key, address = generate_keys()
+
+    response = {
+        'address'    : address.decode(),
+        'private_key': private_key.decode(),
+        'public_key' : public_key.decode(),
+    }
     return jsonify(response), 200
 
 
