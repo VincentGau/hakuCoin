@@ -76,6 +76,27 @@ class Blockchain:
         self.current_transactions.append(transaction)
         return blockchain.blocks[-1].index + 1
 
+    def transactionV1(self, sender, recipient, amount, public_key, signature, msg):
+        """
+        Create a new transaction, which will be stored in the next mined block.
+
+        :param sender:
+        :param recipient:
+        :param amount:
+        :param public_key:
+        :param signature:
+        :param msg:
+        :return:
+        """
+        if validate_signature(public_key, signature, msg):
+            current_transaction = {
+                'sender'   : sender,
+                'recipient': recipient,
+                'amount'   : amount,
+            }
+            self.current_transactions.append(current_transaction)
+            return blockchain.blocks[-1].index + 1
+
     def register_node(self, address):
         parsed_url = urlparse(address)
         self.nodes.add(parsed_url.netloc)
@@ -202,20 +223,46 @@ def generate_keys():
     """
     Generate private key, public key, and address.
 
-    :return:
+    :return: <str>
     """
     sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
     vk = sk.get_verifying_key()
 
+    # <str>
     private_key = sk.to_string().hex()
     public_key = vk.to_string().hex()
     address = hashlib.sha256(private_key.encode()).hexdigest()
 
+    # <bytes>
     private_key = base64.b64encode(bytes.fromhex(private_key))
     public_key = base64.b64encode(bytes.fromhex(public_key))
     address = base64.b64encode(bytes.fromhex(address))
 
     return private_key.decode(), public_key.decode(), address.decode()
+
+
+def validate_signature(public_key, signature, msg):
+    """
+    validate signature. verify identity and tamper resistant.
+
+    :param public_key: <base64>
+    :param signature: <base64>
+    :param msg:
+    :return:
+    """
+
+    vk = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
+    signature = base64.b64decode(signature)
+
+    try:
+        hash_msg = hashlib.sha256(msg.encode()).hexdigest()
+        vk.verify(signature, hash_msg.encode())
+        print("PASS")
+    except Exception:
+        print("REJECTED")
+        return False
+
+    return False
 
 
 # init
@@ -263,6 +310,22 @@ def transact():
     """
     values = request.get_json()
     required = ['sender', 'recipient', 'amount']
+    if not all(k in values for k in required):
+        return 'Bad request.', 400
+
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    return jsonify(f'The transaction will be stored in block{index}'), 200
+
+
+@app.route('/transaction', methods=['POST'])
+def transaction():
+    """
+    Claim a new transaction. With signature.
+
+    :return:
+    """
+    values = request.get_json()
+    required = ['sender', 'recipient', 'amount', 'signature']
     if not all(k in values for k in required):
         return 'Bad request.', 400
 
