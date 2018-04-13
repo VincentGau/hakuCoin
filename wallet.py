@@ -39,9 +39,6 @@ def generate_keys_file():
     return private_key.decode(), public_key.decode(), address.decode()
 
 
-# generate_keys_file()
-
-
 def transaction_digest(sender, recipient, amount):
     """
     generate digest for transaction data. Tamper-proofing.
@@ -100,6 +97,9 @@ def new_transaction(sender, recipient, amount, private_key, public_key):
     print(r.text)
 
 
-new_transaction('8A8SBdlpocLp7FyN/GtyHZrEXWywjKF/79XTy/VV9w8=', 'X5fQABW6aPix8owEIYAYUjZrsp8T16VrEY1JE316kgM=', 10,
-                '4VgkCrHM6upSIukzSYSwzcKgvUKUZbPDfeGRp80R6X4=',
-                'p9Gm6kGjC/nWr+lGTDy3HCQXCaBZRJst4dG7rFdTWGoo39Wiw6tlZ8tvSF2YUivFfxDCOZsihAujUhr7XgPDYg==')
+if __name__ == '__main__':
+    # generate_keys_file()
+
+    new_transaction('8A8SBdlpocLp7FyN/GtyHZrEXWywjKF/79XTy/VV9w8=', 'X5fQABW6aPix8owEIYAYUjZrsp8T16VrEY1JE316kgM=', 10,
+                    '4VgkCrHM6upSIukzSYSwzcKgvUKUZbPDfeGRp80R6X4=',
+                    'p9Gm6kGjC/nWr+lGTDy3HCQXCaBZRJst4dG7rFdTWGoo39Wiw6tlZ8tvSF2YUivFfxDCOZsihAujUhr7XgPDYg==')
