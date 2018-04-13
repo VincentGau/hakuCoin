@@ -79,6 +79,7 @@ class Blockchain:
     def transactionV1(self, sender, recipient, amount, public_key, signature, msg):
         """
         Create a new transaction, which will be stored in the next mined block.
+        Tamper-proofing & identity verified.
 
         :param sender:
         :param recipient:
@@ -98,6 +99,10 @@ class Blockchain:
             return blockchain.blocks[-1].index + 1
 
     def register_node(self, address):
+        """
+        register address to the network nodes set()
+        :param address:
+        """
         parsed_url = urlparse(address)
         self.nodes.add(parsed_url.netloc)
 
@@ -251,6 +256,8 @@ def validate_signature(public_key, signature, msg):
     :return:
     """
 
+    public_key = base64.b64decode(public_key)
+
     vk = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
     signature = base64.b64decode(signature)
 
@@ -262,7 +269,7 @@ def validate_signature(public_key, signature, msg):
         print("REJECTED")
         return False
 
-    return False
+    return True
 
 
 # init
@@ -317,19 +324,20 @@ def transact():
     return jsonify(f'The transaction will be stored in block{index}'), 200
 
 
-@app.route('/transaction', methods=['POST'])
-def transaction():
+@app.route('/transact_safe', methods=['POST'])
+def transact_safe():
     """
     Claim a new transaction. With signature.
 
     :return:
     """
     values = request.get_json()
-    required = ['sender', 'recipient', 'amount', 'signature']
+    required = ['sender', 'recipient', 'amount', 'signature', 'message']
     if not all(k in values for k in required):
         return 'Bad request.', 400
 
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    index = blockchain.transactionV1(values['sender'], values['recipient'], values['amount'], values['public_key'],
+                                     values['signature'], values['message'])
     return jsonify(f'The transaction will be stored in block{index}'), 200
 
 

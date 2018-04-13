@@ -1,8 +1,3 @@
-Preparation
-install python 3.6
-install Postman
-
-activate virtual env
 
 # Simple Example
 ### Run server on different ports
@@ -15,8 +10,11 @@ Now we can:
 - `http://{node}/full_chain` to view all blocks.  
 - `http://{node}/mine` to store all pending transaction in a new block add the block to the blockchain, which is the so-called mining.
 - `http://{node}/resolve` to apply the consensus algorithm, determine which chain should be authoritative, in this case, the longest chain is used.
+- `http://{node}/wallet` to apply for a new wallet. Including key pair and address.
 - Post data to `http://{node}/transact` to claim a new transaction, the transaction should be broadcasted to all nodes in the network.
+- Post data to `http://{node}/transact_safe` to claim a new transaction in the safe mode (with transaction digest and signature), the transaction should be broadcasted to all nodes in the network.
 - Post data to `http://{node}register_nodes` to join the network, the request should be sent to all _other_ nodes in the network.
+
 
 ### Register nodes to the network
 Nodes info are configured in `local_config.py` by default. We can also add nodes to the network manually.
@@ -39,6 +37,9 @@ Broadcast requests to all nodes in the network. eg. post json below to `http://l
 }
 ```
 and to servers on port 5001, 5002 as well.
+
+### Add new safe transaction from client
+run `python wallet.py` to test
 
 ### Mining
 Let's suppose node 5000 mine the block first, `http://localhost:5000/mine`. After that, when we vist `http://localhost:5000/full_chain`, we'll see a new block was added to the chain, transaction was stored in that block. 
