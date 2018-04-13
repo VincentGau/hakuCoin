@@ -23,6 +23,7 @@ class Block:
         self.transactions = transactions
         self.previous_hash = previous_hash
         self.proof = proof
+        self.hash = self.block_hash()
 
     def block_hash(self):
         """
@@ -30,9 +31,10 @@ class Block:
 
         :return:
         """
-        block_content = json.dumps(self, default=lambda obj: obj.__dict__).encode()
-        print(block_content)
-        return hashlib.sha256(block_content).hexdigest()
+        sha = hashlib.sha256()
+        sha.update((str(self.index) + str(self.timestamp) + str(self.transactions) + str(self.previous_hash) + str(
+            self.proof)).encode())
+        return sha.hexdigest()
 
 
 class Blockchain:
