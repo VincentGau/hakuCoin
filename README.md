@@ -6,6 +6,9 @@ python main.py
 python main.py -p 5001
 python main.py -p 5002
 ```
+
+[Postman](https://www.getpostman.com) is suggested to send requests and view responses.
+
 Now we can:  
 - `http://{node}/full_chain` to view all blocks.  
 - `http://{node}/mine` to store all pending transaction in a new block add the block to the blockchain, which is the so-called mining.
