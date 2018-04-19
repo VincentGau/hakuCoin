@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from unittest import TestCase
-from main import Block, Blockchain
-import wallet
+from blockchain import Blockchain
 
 
 class BlockchainTestCase(TestCase):
@@ -18,7 +17,6 @@ class BlockchainTestCase(TestCase):
     def test_init_blocks(self):
         self.assertEqual(self.blockchain.blocks.__len__(), 1)
         self.assertEqual(self.blockchain.current_transactions.__len__(), 0)
-
 
     def test_new_transaction(self):
         self.blockchain.new_transaction(
