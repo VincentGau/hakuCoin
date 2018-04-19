@@ -1,5 +1,6 @@
 # Build a simple blockchain
 
+[![Build Status](https://www.travis-ci.org/VincentGau/hakuCoin.svg?branch=master)](https://www.travis-ci.org/VincentGau/hakuCoin)
 
 ## Simple Example
 ### Run server on different ports
