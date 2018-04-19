@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+A simple blockchain.
+"""
+
 import base64
-import json
 import time
 import hashlib
 from argparse import ArgumentParser
@@ -17,6 +21,9 @@ app = Flask(__name__)
 
 
 class Block:
+    """
+    Actually no need to create a class for block. Could simply use a dict to represent block.
+    """
     def __init__(self, index, timestamp, transactions, proof, previous_hash):
         self.index = index
         self.timestamp = timestamp
@@ -78,7 +85,7 @@ class Blockchain:
         self.current_transactions.append(transaction)
         return blockchain.blocks[-1].index + 1
 
-    def transactionV1(self, sender, recipient, amount, public_key, signature, msg):
+    def transaction_safe(self, sender, recipient, amount, public_key, signature, msg):
         """
         Create a new transaction, which will be stored in the next mined block.
         Tamper-proofing & identity verified.
@@ -176,15 +183,15 @@ def consensus():
     return False
 
 
-def proof_of_work(blockchain):
+def proof_of_work(bc):
     """
     simple PoW algorithm.
     Find proof such that hash(proof + previous_proof + previous_hash) starts with 4 zeros.
 
-    :param blockchain:
+    :param bc: blockchain
     :return: <int> new proof
     """
-    previous_block = blockchain.blocks[-1]
+    previous_block = bc.blocks[-1]
     previous_hash = previous_block.block_hash()
     previous_proof = previous_block.proof
 
@@ -338,8 +345,8 @@ def transact_safe():
     if not all(k in values for k in required):
         return 'Bad request.', 400
 
-    index = blockchain.transactionV1(values['sender'], values['recipient'], values['amount'], values['public_key'],
-                                     values['signature'], values['message'])
+    index = blockchain.transaction_safe(values['sender'], values['recipient'], values['amount'], values['public_key'],
+                                        values['signature'], values['message'])
     return jsonify(f'The transaction will be stored in block{index}'), 200
 
 
